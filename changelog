@@ -1,0 +1,12 @@
+Changelog:
+
+0.1
+
+Initial commit
+
+0.1.1
+
+Added AWP ascii art to welcome screen
+Added wikipedia scraping functionality (needs work)
+Added (sort of) functionality to save wordlist to file
+Added some comments
