@@ -1,8 +1,14 @@
+import wikipedia
 import wikipediaapi
 import requests
 from bs4 import BeautifulSoup as bs
 import os
 from os import path
+
+def generator():
+
+    list = welcome()
+    expander(list)
 
 def welcome(): #welcome function to get language
 
@@ -10,7 +16,21 @@ def welcome(): #welcome function to get language
 
     # WELCOME SCREEN
     print("[+] Welcome to Another Wordlist Provider (AWP) [+]")
-    print("WIP! HERE SHOULD BE A NICE ASCII LOGO ︻デ═一")
+    print("""                                                                                                                                                                                                                      
+..................................NN........... ....................................................
+.......................DMNNMNNNDMMNDN8NNDNNN8$Z.....................................................
+.......................NMMMMMMMNMMNMMNMMMMMMNNN ....................................................
+............................. .NO.. .NM. ...... ....................................................
+.    .....................NNNDD8DNDNNDNDNONDDDD888OOOOOO8OZZOOOOOOOO888888DDDDDDDDDNDDNNNNNNMMNMNN..
+.DDDDMM$$$D8D88888DDDDDDDNZO8DD888ZZZ78888O??ZOOOZ$Z8OO8DDM.......................... ......NN .....
+.NNNNNNDDZ$OD8OZ$O888D87DDD8DO888DDDODDDDDDDNNNN8NNNNNNNNNN.........................................
+.NNNNDNNNNNNNN8NNN.....NNM.:..DNDDDNNNDNN..............88O88ND87DD?~~~~,ND..........................
+.MNNNNNNNNNNNNNNNM....MMNM....Z.DDNNND .............................................................
+.NNNNNNNNM....MMMMMMMMMMM .......   ................................................................
+.DDD8MMMMN.....MMMMMMMMMM...........................................................................
+.....................,~8,...........................................................................                                                                                                                                  
+                                                                         
+    """)
 
     targetLanguage = input("[?] What is the target's language? (ISO 639-1): ").lower()
     while len(targetLanguage) != 2:
@@ -18,19 +38,10 @@ def welcome(): #welcome function to get language
     if not supportedLanguages(targetLanguage):
         print("[-] Sorry, language not supported! Defaulting to English...")
         targetLanguage = "en"
-        listBuilder(targetLanguage)
+        return listBuilder(targetLanguage)
     else:
-        listBuilder(targetLanguage)
+        return listBuilder(targetLanguage)
 
-def supportedLanguages(targetLanguage):
-
-    # PLACEHOLDER!
-    # in reality would check github supported languages
-
-    if targetLanguage in ["en", "fi"]:
-        return True
-    else:
-        return False
 
 def listBuilder(targetLanguage):
 
@@ -58,8 +69,7 @@ def listBuilder(targetLanguage):
     if wikiListQuery == "y":
         wikiList = wikiScraper(targetLanguage)
         awpList.extend(wikiList)
-        print("Scraped Wiki in this language: ", targetLanguage)
-        print(len(wikiList), " words added.")
+        print("[+]", len(wikiList), " words added.")
     else:
         print("[+] Not scraping Wikipedia.")
 
@@ -93,12 +103,50 @@ def listBuilder(targetLanguage):
         awpList.extend(targetList)
         print("Added details about the target for", len(targetList), "words")
 
-    print(awpList)
+    return awpList
+
+def expander(list):
+
+    #needs functionality to:
+    #1. show word count and file size
+    #2. actually expand the dictionary with rules (1337 mode, special chars, etc)
+    #3. select what file to write in
+    while True:
+        fileLocation = input("[?] Where do you want to write the file? (defaults to working directory if empty): ")
+        if fileLocation == "":
+            fileLocation = os.getcwd()
+            break
+        else:
+            if os.path.isdir(fileLocation):
+                break
+            else:
+                print("[!] Directory doesn't exist!")
+                continue
+    if fileLocation[-1] == "/":
+        print(fileLocation)
+    else:
+        fileLocation += "/"
+        print("No slash, added")
+        print(fileLocation)
+
+    with open('/home/lassi/wordlist.txt', mode='wt', encoding='utf-8') as myfile:
+        myfile.write('\n'.join(list))
+        myfile.write('\n')
+
+def supportedLanguages(targetLanguage):
+
+    # PLACEHOLDER!
+    # in reality would check github supported languages
+
+    if targetLanguage in ["en", "fi"]:
+        return True
+    else:
+        return False
 
 def listSelector(targetLanguage):
 
     print(
-        "[1] Download an existing list from testhub.com\n[2] Use an existing local list\n[3] Nevermind")
+        "[1] Download an existing list from github\n[2] Use an existing local list\n[3] Nevermind")
     listOption = input("[?] Choose an option: ")
 
     while listOption not in ("1", "2", "3"):
@@ -125,6 +173,7 @@ def listSelector(targetLanguage):
 def downloadList(targetLanguage):
 
     # PLACEHOLDER !
+    # Would actually pull files from github
 
     if targetLanguage == "fi":
         downloadedList = ["salasana", "salasana2", "salasana3"]
@@ -149,13 +198,26 @@ def getLocalList():
 
 def wikiScraper(targetLanguage):
 
-    # PLACEHOLDER !
+    wikiData = []
 
-    if targetLanguage == "fi" or targetLanguage == "en":
-        scrapedWikiData = ["Game", "of", "Thrones"]
-    else:
-        scrapedWikiData = ["Error with language!"]
-    return scrapedWikiData
+    while True:
+        pageInput = input("[?] Enter the name of the Wikipedia page: ")
+        pageChecker = wikipediaapi.Wikipedia(targetLanguage)
+        if pageChecker.page(pageInput).exists():
+            wikiPage = wikipedia.page(pageInput)
+            wikiData.extend(wikiPage.content.split(" "))
+            print("[+]", len(wikiData), "words scraped from Wikipedia")
+            pageInput = input("[?] Do you want to add another page? Y/[N]: ").lower()
+            if pageInput == "y":
+                continue
+            else:
+                break
+        else:
+            print("[!] Wikipedia page not found! Here's the results found with that term: ")
+            print(wikipedia.search(pageInput))
+            continue
+    return wikiData
+
 
 def websiteScraper():
 
@@ -215,15 +277,16 @@ def socialMediaScraper():
                     continue
     return socialMediaList
 
-def facebookScraper():
+def facebookScraper(): #needs actual scraping function
     facebookUsername = input("Please enter username: ")
     return ["Facebook", "True", facebookUsername]
 
-def twitterScraper():
+def twitterScraper(): #needs actual scraping function
+    #could some interest algorithm be used to generate list? For example, if user follows lot of bitcoin blogs
     twitterUsername = input("Please enter username: ")
     return ["Twitter", "True", twitterUsername]
 
-def instagramScraper():
+def instagramScraper(): #needs actual scraping function
     instagramUsername = input("Please enter username: ")
     return ["Instagram", "True", instagramUsername]
 
@@ -233,6 +296,8 @@ def targetListBuilder():
 
     print("[+] Press Enter for empty: ")
 
+    # Needs more questions (refer to CUPP)
+
     targetName = input("[?] Enter target's full name: ").lower().split()
     targetSo = input("[?] Enter target's significant other's full name: ").lower().split()
     targetKeywords = input("[?] Enter keywords about the target (separated by spaces): ").lower().split()
@@ -241,4 +306,4 @@ def targetListBuilder():
     return targetList
 
 if __name__ == '__main__':
-    welcome()
+    generator()
