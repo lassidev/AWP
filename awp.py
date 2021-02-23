@@ -3,7 +3,15 @@ import wikipediaapi
 import requests
 from bs4 import BeautifulSoup as bs
 import os
+import sys
 from os import path
+from github import Github
+from pathvalidate import sanitize_filename
+from colorama import Fore, Style, init
+from termcolor import colored
+
+g = Github("") #github token API, remove before push
+init(autoreset=True) #colorama init
 
 def generator():
 
@@ -15,7 +23,7 @@ def welcome(): #welcome function to get language
     global targetLanguage
 
     # WELCOME SCREEN
-    print("[+] Welcome to Another Wordlist Provider (AWP) [+]")
+    print(colored("[+] Welcome to Another Wordlist Provider (AWP) [+]", "green"))
     print("""                                                                                                                                                                                                                      
 ..................................NN........... ....................................................
 .......................DMNNMNNNDMMNDN8NNDNNN8$Z.....................................................
@@ -32,9 +40,9 @@ def welcome(): #welcome function to get language
                                                                          
     """)
 
-    targetLanguage = input("[?] What is the target's language? (ISO 639-1): ").lower()
+    targetLanguage = input(colored("[?] What is the target's language? (ISO 639-1): ", "cyan")).lower()
     while len(targetLanguage) != 2:
-        targetLanguage = input("[!] Please input a 2-letter language code, such as \"en\": ")
+        targetLanguage = input("[!] Please input a 2-letter language code, such as \"en\": ").lower()
     if not supportedLanguages(targetLanguage):
         print("[-] Sorry, language not supported! Defaulting to English...")
         targetLanguage = "en"
@@ -47,7 +55,7 @@ def listBuilder(targetLanguage):
 
     awpList = []
 
-    existingListQuery = input("[?] Do you want to use your own or community provided lists as a base? Y/[N]: ").lower()
+    existingListQuery = input("[?] Do you want to use your own or community provided lists as a base? Y/[N]").lower()
     if existingListQuery == "y":
         while True:
             existingList = listSelector(targetLanguage)
@@ -56,11 +64,11 @@ def listBuilder(targetLanguage):
                 break
             else:
                 awpList.extend(existingList)
-                existingListQuery = input("More lists? Y/[N]: ").lower()
+                existingListQuery = input("[?] More lists? Y/[N]: ").lower()
                 if existingListQuery == "y":
                     continue
                 else:
-                    print("[+] Lists added as a base for", len(awpList), "words")
+                    print(colored("[+] Lists added as a base for", "green"), colored(len(awpList), "red"), "words")
                     break
     else:
         print("[+] Not using a base list")
@@ -101,7 +109,7 @@ def listBuilder(targetLanguage):
     else:
         targetList = targetListBuilder()
         awpList.extend(targetList)
-        print("Added details about the target for", len(targetList), "words")
+        print("[+] Added details about the target for", len(targetList), "words")
 
     return awpList
 
@@ -111,6 +119,18 @@ def expander(list):
     #1. show word count and file size
     #2. actually expand the dictionary with rules (1337 mode, special chars, etc)
     #3. select what file to write in
+
+    fullPath = fileinput()
+
+    print("[+] The wordlist contains", len(list), "words")
+    print("[+] The size of the wordlist is", sys.getsizeof(list), "bytes")
+    with open(fullPath, mode='x', encoding='utf-8') as myfile:
+        myfile.write('\n'.join(list))
+        myfile.write('\n')
+    print("[+] Wordlist successfully saved to", fullPath)
+
+def fileinput():
+
     while True:
         fileLocation = input("[?] Where do you want to write the file? (defaults to working directory if empty): ")
         if fileLocation == "":
@@ -122,16 +142,19 @@ def expander(list):
             else:
                 print("[!] Directory doesn't exist!")
                 continue
-    if fileLocation[-1] == "/":
-        print(fileLocation)
-    else:
+    if fileLocation[-1] != "/":
         fileLocation += "/"
-        print("No slash, added")
-        print(fileLocation)
 
-    with open('/home/lassi/wordlist.txt', mode='wt', encoding='utf-8') as myfile:
-        myfile.write('\n'.join(list))
-        myfile.write('\n')
+    fileNameInput = input("[?] What is the name of the file? (defaults to wordlist.txt if empty): ")
+    if fileNameInput == "":
+        fileNameInput = "wordlist"
+    fileName = sanitize_filename(fileNameInput)
+    if not fileName.endswith(".txt"):
+        fullPath = fileLocation + fileName + ".txt"
+    else:
+        fullPath = fileLocation + fileName
+
+    return fullPath
 
 def supportedLanguages(targetLanguage):
 
@@ -172,16 +195,28 @@ def listSelector(targetLanguage):
 
 def downloadList(targetLanguage):
 
-    # PLACEHOLDER !
-    # Would actually pull files from github
-
-    if targetLanguage == "fi":
-        downloadedList = ["salasana", "salasana2", "salasana3"]
-    elif targetLanguage == "en":
-        downloadedList = ["password", "password2", "password3"]
-    else:
-        downloadedList = ["Error 2 with language!"]
-    return downloadedList
+    wordlists = {} #init wordlist option dictionary
+    i = 0
+    repo = g.get_repo("lassidev/AWP") #my repo
+    contents = repo.get_contents("wordlists/{}".format(targetLanguage)) #get list of all files in wordlist directory
+    print("[?] Which wordlist do you wish to use?")
+    for content_file in contents:
+        i += 1
+        stripped_content_file = str(content_file).replace("ContentFile(path=\"", "").replace("\")", "") #convert ObjectFile to string and strip unnecessary characters
+        wordlists[i] = stripped_content_file #add options to dictionary with key values, starting from 1
+        print("[{}]".format(i), stripped_content_file) #print options
+    while True:
+        selection = input("[?] Which wordlist do you want to use?: ")
+        if int(selection) <= i:
+            break
+        else:
+            print("[!] Please input valid selection!")
+            continue
+    f = repo.get_contents(wordlists[int(selection)])
+    raw_data = f.decoded_content
+    downloadedList = str(raw_data, "utf-8")
+    print("[+] Downloaded a wordlist containing", downloadedList.count("\n"), "words")
+    return downloadedList.split()
 
 def getLocalList():
 
@@ -248,7 +283,7 @@ def socialMediaScraper():
             if socialMediaData:
                 socialMediaList.extend(socialMediaData)
                 print("[+] Facebook scraped for a total of", len(socialMediaData), "words")
-                socialMediaSite = input("Do you wish to scrape more social medias? [Y]/N: ").lower()
+                socialMediaSite = input("[?] Do you wish to scrape more social medias? [Y]/N: ").lower()
                 if socialMediaSite == "n":
                     break
                 else:
@@ -259,7 +294,7 @@ def socialMediaScraper():
             if socialMediaData:
                 socialMediaList.extend(socialMediaData)
                 print("[+] Twitter scraped for a total of", len(socialMediaData), "words")
-                socialMediaSite = input("Do you wish to scrape more social medias? [Y]/N: ").lower()
+                socialMediaSite = input("[?] Do you wish to scrape more social medias? [Y]/N: ").lower()
                 if socialMediaSite == "n":
                     break
                 else:
@@ -270,7 +305,7 @@ def socialMediaScraper():
             if socialMediaData:
                 socialMediaList.extend(socialMediaData)
                 print("[+] Instagram scraped for a total of", len(socialMediaData), "words")
-                socialMediaSite = input("Do you wish to scrape more social medias? [Y]/N: ").lower()
+                socialMediaSite = input("[?] Do you wish to scrape more social medias? [Y]/N: ").lower()
                 if socialMediaSite == "n":
                     break
                 else:
@@ -278,16 +313,16 @@ def socialMediaScraper():
     return socialMediaList
 
 def facebookScraper(): #needs actual scraping function
-    facebookUsername = input("Please enter username: ")
+    facebookUsername = input("[?] Please enter username: ")
     return ["Facebook", "True", facebookUsername]
 
 def twitterScraper(): #needs actual scraping function
     #could some interest algorithm be used to generate list? For example, if user follows lot of bitcoin blogs
-    twitterUsername = input("Please enter username: ")
+    twitterUsername = input("[?] Please enter username: ")
     return ["Twitter", "True", twitterUsername]
 
 def instagramScraper(): #needs actual scraping function
-    instagramUsername = input("Please enter username: ")
+    instagramUsername = input("[?] Please enter username: ")
     return ["Instagram", "True", instagramUsername]
 
 def targetListBuilder():
