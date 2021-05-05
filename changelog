@@ -10,3 +10,9 @@ Added AWP ascii art to welcome screen
 Added wikipedia scraping functionality (needs work)
 Added (sort of) functionality to save wordlist to file
 Added some comments
+
+0.1.2
+
+Added twitter scraping functionality (using twint module) (needs work)
+Improved AWP ascii art
+Played around with colors (need to figure this out)

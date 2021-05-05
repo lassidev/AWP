@@ -1,7 +1,9 @@
 import wikipedia
 import wikipediaapi
+import twint
 import requests
 from bs4 import BeautifulSoup as bs
+import re
 import os
 import sys
 from os import path
@@ -318,8 +320,38 @@ def facebookScraper(): #needs actual scraping function
 
 def twitterScraper(): #needs actual scraping function
     #could some interest algorithm be used to generate list? For example, if user follows lot of bitcoin blogs
-    twitterUsername = input("[?] Please enter username: ")
-    return ["Twitter", "True", twitterUsername]
+
+    tweets = [] #init list for scraped tweets
+    tweetsStripped = [] #init list for formatted words from tweets
+
+    c = twint.Config() #using twint config
+    c.Username = input("[?] What is the target's username?: ").lower()
+    while True:
+        try:
+            c.Limit = int(input("[?] How many tweets do you want to scrape? (minimum 100): ")) #twint always scrapes minimum 100 tweets
+            break
+        except:
+            print("[!] That's not a number!")
+    while True:
+        try:
+            charactercount = int(input("[?] What is the minimum character length of words you want to be added to the list?: ")) #only include words that are >= x length
+            break
+        except:
+            print("[!] That's not a number!")
+    c.Store_object = True #store scraped objects in RAM (needed in twint)
+    c.Store_object_tweets_list = tweets #store tweets in list
+    c.Hide_output = True
+    twint.run.Search(c)
+
+    for i in range(len(tweets)):
+        splitTweet = tweets[i].tweet.split() #split each tweet into words
+
+        for words in splitTweet:
+            if len(words) >= charactercount and "http" not in words and "@" not in words: #charactercount, remove links and username mentions
+                cleanedWord = re.sub('[^A-Za-z0-9]+', '', words) #strip special characters (needs work)
+                tweetsStripped.append(cleanedWord)
+
+    return tweetsStripped #return ready list
 
 def instagramScraper(): #needs actual scraping function
     instagramUsername = input("[?] Please enter username: ")
